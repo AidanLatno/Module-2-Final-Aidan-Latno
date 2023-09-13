@@ -1,0 +1,32 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+#canvas1 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-image: url(textures/water.png);
+    background-size: cover;
+    background-position: 10%;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+#land{
+    border: 5px solid black;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: auto;
+    height: 744px;
+    
+    background-position: 10%;
+    max-width: 100%;
+    max-height: 100%;
+    
+}
