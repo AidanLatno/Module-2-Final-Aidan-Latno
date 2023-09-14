@@ -55,8 +55,8 @@ window.addEventListener('load', function(){
         constructor(x,y,sprite){
             this.x = x;
             this.y = y;
-            this.width = 32;
-            this.height = 32;
+            this.width = 96;
+            this.height = 96;
             this.sprite = sprite;
             this.speedX = 0;
             this.speedY = 0;
@@ -64,8 +64,9 @@ window.addEventListener('load', function(){
             this.markedForDeletion = false;
         }
         draw(context){
-            //NOT WORKING
-            context.drawImage(sprite,this.x,this.y,this.width,this.height);
+            console.log(this.x);
+            console.log(this.y);
+            context.drawImage(this.sprite,this.x,this.y,this.width,this.height);
         }
         update(){
             this.x += this.speedX;
@@ -76,8 +77,8 @@ window.addEventListener('load', function(){
     class Player extends Actor{
         constructor(x,y,sprite){
             super(x,y,sprite);
-            this.height = 28;
-            this.width = 12;
+            this.height = 84;
+            this.width = 36;
         }
         update(scene){
             this.speedX = 0;
@@ -132,8 +133,9 @@ window.addEventListener('load', function(){
     }
     
     const level1 = new Scene(canvas.width,canvas.height);
-    const player = new Player(100,100,null);
-    const randomTrash = new Trash(250,0,null);
+    const player = new Player(100,100,document.getElementById("playertexture"));
+    console.log(player.sprite);
+    const randomTrash = new Trash(250,0,document.getElementById("trashtexture"));
 
     level1.addActor(player);
     level1.addActor(randomTrash);
