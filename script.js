@@ -3,6 +3,7 @@ window.addEventListener('load', function(){
     const ctx = canvas.getContext('2d');
     canvas.width = 146*3;
     canvas.height = 248*3;
+    let lives = 3;
 
 
     /*
@@ -50,7 +51,8 @@ window.addEventListener('load', function(){
         }
         // Draws the sprite with the info of the actor, gets called every frame
         draw(context){
-            context.drawImage(this.sprite,this.x,this.y,this.width,this.height);
+            if(this.sprite != null)
+                context.drawImage(this.sprite,this.x,this.y,this.width,this.height);
         }
         // contains logic for Actor, should be overriden, gets called every frame
         update(){
@@ -69,11 +71,13 @@ window.addEventListener('load', function(){
         // Adds tag to tag list for grouping
         addTag(tag){
             this.tags.push(tag);
+            return this;
         }
         // returns index of passed in tag within the tag list
         // will return -1 if it does not exist with the list
         hasTag(tag){
-            return this.tags.indexOf(tag);
+            if(this.tags.indexOf(tag) > -1) return true;
+            return false;
         }
     }
 
@@ -87,7 +91,6 @@ window.addEventListener('load', function(){
             this.height = 84;
             this.width = 36;
             this.score = 0;
-            this.lives = 3;
             this.inventory = 0;
         }
         update(scene){
@@ -98,19 +101,47 @@ window.addEventListener('load', function(){
             if(scene.keys.includes('a')) this.speedX += -this.maxSpeed;
             if(scene.keys.includes('s')) this.speedY += this.maxSpeed;
             if(scene.keys.includes('d')) this.speedX += this.maxSpeed;
+            if(scene.keys.includes('i')){
+                console.log(this.x);
+                console.log(this.y);
+            }
             
             this.y += this.speedY;
             this.x += this.speedX;
 
-            if(this.x > canvas.width - 15) this.x = canvas.width - 15;
+            if(this.x > canvas.width - 35) this.x = canvas.width - 35;
             else if(this.x < 0) this.x = 0;
-
+        }
+        updateSprite(){
+            switch(this.inventory){
+                case 0:
+                    this.sprite = document.getElementById("playertexture1");
+                    break;
+                case 1:
+                case 2:
+                case 3:
+                    this.sprite = document.getElementById("playertexture2");
+                    break;
+                case 4:
+                case 5:
+                case 6:
+                    this.sprite = document.getElementById("playertexture3");
+                    break;
+                case 7:
+                case 8:
+                case 9:
+                    this.sprite = document.getElementById("playertexture4");
+                    break;
+                case 10:
+                    this.sprite = document.getElementById("playertexture5");
+                    break;
+            }
         }
     }
 
     /*
         Trash class inherits from actor and is used for the trash object seen in game
-        Objects of this class will slowly fall down the scene, then delete themsekves once they get to the bottom 
+        Objects of this class will slowly fall down the scene, then delete themsekves once they get to the bottom and take 1 life away
     */
     class Trash extends Actor{
         constructor(x,y,sprite){
@@ -120,7 +151,7 @@ window.addEventListener('load', function(){
             this.y += 1;
             if(this.y > 700){
                 this.markedForDeletion = true;
-                console.log("Removed");
+                lives--;
             }
         }
     }
@@ -154,20 +185,43 @@ window.addEventListener('load', function(){
         addActor(actor){
             this.actors.push(actor);
         }
-
+        // Takes info from an actor and makes a new one based on that
+        addNewActor(actor,tag){
+            this.actors.push(new Actor(actor.x, actor.y, actor.sprite).addTag(tag));
+        }
+        addNewTrash(actor){
+            this.actors.push(new Trash(actor.x, actor.y, actor.sprite).addTag("Trash"));
+        }
     }
-    
+
     // Declaration and initialization of constant game objects
     const level1 = new Scene(canvas.width,canvas.height);
-    const player = new Player(100,100,document.getElementById("playertexture"));
+    const player = new Player(100,100,document.getElementById("playertexture1"));
+    const bin = new Actor(400,600,null);
+    const trash = new Trash(200,20,document.getElementById("trashtexture1"));
 
     level1.addActor(player);
+    level1.addActor(bin);
 
+    // Spawn trash periodically
     var intervalId = setInterval(function() {
         console.log("Called");
-        level1.addActor(new Trash(200,20,document.getElementById("trashtexture")).addTag("Trash"));    
-    }, 5000);
+        trash.x = Math.floor(Math.random() * 370);
+        
+        if(Math.floor(Math.random() * 2) === 1) trash.sprite = document.getElementById("trashtexture1");
+        else trash.sprite = document.getElementById("trashtexture2");
 
+        level1.addNewTrash(trash);
+    }, 1500);
+
+    // Empty Trash when near bin periodically
+    var intervalId = setInterval(function() {
+        // Player and bin collision
+        if(player.isColliding(bin) && player.inventory > 0){
+            player.inventory--;
+            player.updateSprite();
+        }
+    }, 200);
 
     // main game loop
     function game(){
@@ -182,9 +236,13 @@ window.addEventListener('load', function(){
                 if(actor.isColliding(player) && player.inventory < 10){
                     actor.markedForDeletion = true;
                     player.inventory++;
+                    player.updateSprite();
                 }
             }
         });
+
+        
+
 
         requestAnimationFrame(game);
     }
