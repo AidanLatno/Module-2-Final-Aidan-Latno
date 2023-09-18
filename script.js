@@ -33,7 +33,6 @@ window.addEventListener('load', function(){
         Contains:
             Methods to detect for collision with other Actors
             Position, Height, Width, Speed
-            Tags list to create groups of Actors
             Deletion flag that tells the scene to delete the Actor from itself when set to true
     */
     class Actor{
@@ -47,7 +46,6 @@ window.addEventListener('load', function(){
             this.speedY = 0;
             this.maxSpeed = 2;
             this.markedForDeletion = false;
-            this.tags = [];
         }
         // Draws the sprite with the info of the actor, gets called every frame
         draw(context){
@@ -68,17 +66,6 @@ window.addEventListener('load', function(){
                 (this.x > (actor.x + actor.width))
             );
         }
-        // Adds tag to tag list for grouping
-        addTag(tag){
-            this.tags.push(tag);
-            return this;
-        }
-        // returns index of passed in tag within the tag list
-        // will return -1 if it does not exist with the list
-        hasTag(tag){
-            if(this.tags.indexOf(tag) > -1) return true;
-            return false;
-        }
     }
 
     /*
@@ -96,6 +83,8 @@ window.addEventListener('load', function(){
         update(scene){
             this.speedX = 0;
             this.speedY = 0;
+
+            if(lives <= 0) return; // Freezes game when you lose
 
             if(scene.keys.includes('w')) this.speedY += -this.maxSpeed;
             if(scene.keys.includes('a')) this.speedX += -this.maxSpeed;
@@ -141,14 +130,16 @@ window.addEventListener('load', function(){
 
     /*
         Trash class inherits from actor and is used for the trash object seen in game
-        Objects of this class will slowly fall down the scene, then delete themsekves once they get to the bottom and take 1 life away
+        Objects of this class will slowly fall down the scene, then delete themselves once they get to the bottom and take 1 life away
     */
     class Trash extends Actor{
         constructor(x,y,sprite){
             super(x,y,sprite);
         }
         update(scene){
-            this.y += 1;
+            if(lives <= 0) return; // Freezes game when you lose
+
+            this.y++;
             if(this.y > 700){
                 this.markedForDeletion = true;
                 lives--;
@@ -157,7 +148,27 @@ window.addEventListener('load', function(){
     }
 
     /*
-        Class containing all Actor in the world during runtime, aswell as trigging their logic and draw calls
+        Fish class inherits from actor and is used for the fish object seen in game
+        Objects of this class will slowly fall down the scene, then delete themselves once they get to the bottom
+        When the player collides with a fish, it will knock all trash out of their boat back into the water
+    */
+    class Fish extends Actor{
+        constructor(x,y,sprite){
+            super(x,y,sprite);
+            this.width /= 2;
+        }
+        update(scene){
+            if(lives <= 0) return; // Freezes game when you lose
+
+            this.y += 2;
+            if(this.y > 700){
+                this.markedForDeletion = true;
+            }
+        }
+    }
+
+    /*
+        Class containing all Actor in the world during runtime, as well as trigging their logic and draw calls
         Also contains input que and methods to remove/add Actors into the scene
     */
     class Scene {
@@ -186,26 +197,44 @@ window.addEventListener('load', function(){
             this.actors.push(actor);
         }
         // Takes info from an actor and makes a new one based on that
-        addNewActor(actor,tag){
-            this.actors.push(new Actor(actor.x, actor.y, actor.sprite).addTag(tag));
+        addNewActor(actor){
+            this.actors.push(new Actor(actor.x, actor.y, actor.sprite));
         }
         addNewTrash(actor){
-            this.actors.push(new Trash(actor.x, actor.y, actor.sprite).addTag("Trash"));
+            this.actors.push(new Trash(actor.x, actor.y, actor.sprite));
+        }
+        addNewFish(actor){
+            this.actors.push(new Fish(actor.x, actor.y, actor.sprite));
         }
     }
 
     // Declaration and initialization of constant game objects
-    const level1 = new Scene(canvas.width,canvas.height);
-    const player = new Player(100,100,document.getElementById("playertexture1"));
-    const bin = new Actor(400,600,null);
-    const trash = new Trash(200,20,document.getElementById("trashtexture1"));
+    let level1 = new Scene(canvas.width,canvas.height);
+    let player = new Player(100,100,document.getElementById("playertexture1"));
+    let bin = new Actor(400,600,null);
+    let trash = new Trash(200,20,document.getElementById("trashtexture1"));
+    let fish = new Fish(200,20,this.document.getElementById("fishtexture1"));
+    let heart1 = new Actor((canvas.width/2)-60,20,document.getElementById("fullhearttexture"));
+    let heart2 = new Actor((canvas.width/2)-20,20,document.getElementById("fullhearttexture"));
+    let heart3 = new Actor((canvas.width/2)+20,20,document.getElementById("fullhearttexture"));
+    let loseMessage = new Actor((canvas.width/2)-150,canvas.height/2-150,document.getElementById("losetexture"));
+    loseMessage.height = 300;
+    loseMessage.width = 300;
+    heart1.height = 40;
+    heart1.width = 40;
+    heart2.height = 40;
+    heart2.width = 40;
+    heart3.height = 40;
+    heart3.width = 40;
 
     level1.addActor(player);
     level1.addActor(bin);
+    level1.addActor(heart1);
+    level1.addActor(heart2);
+    level1.addActor(heart3);
 
     // Spawn trash periodically
-    var intervalId = setInterval(function() {
-        console.log("Called");
+    var trashSpawnID = setInterval(function() {
         trash.x = Math.floor(Math.random() * 370);
         
         if(Math.floor(Math.random() * 2) === 1) trash.sprite = document.getElementById("trashtexture1");
@@ -214,10 +243,21 @@ window.addEventListener('load', function(){
         level1.addNewTrash(trash);
     }, 1500);
 
+    // Spawn fish periodically
+    var trashSpawnID = setInterval(function() {
+        fish.x = Math.floor(Math.random() * 370);
+        
+        if(Math.floor(Math.random() * 2) === 1) fish.sprite = document.getElementById("fishtexture1");
+        else fish.sprite = document.getElementById("fishtexture2");
+
+        level1.addNewFish(fish);
+    }, 1500);
+
     // Empty Trash when near bin periodically
-    var intervalId = setInterval(function() {
+    var trashDepositID = setInterval(function() {
         // Player and bin collision
         if(player.isColliding(bin) && player.inventory > 0){
+            player.score += 10;
             player.inventory--;
             player.updateSprite();
         }
@@ -225,14 +265,14 @@ window.addEventListener('load', function(){
 
     // main game loop
     function game(){
-        // Graphics
+        // Canvas Graphics
         ctx.clearRect(0,0,canvas.width,canvas.height);
         level1.update();
         level1.draw(ctx);
 
         // Detect Player collision with trash
         level1.actors.forEach(actor =>{
-            if(actor.hasTag("Trash")){
+            if(actor instanceof Trash){
                 if(actor.isColliding(player) && player.inventory < 10){
                     actor.markedForDeletion = true;
                     player.inventory++;
@@ -241,7 +281,24 @@ window.addEventListener('load', function(){
             }
         });
 
-        
+        // Update sprites for hearts to display number of lives
+        switch(lives){
+            case 0:
+                heart3.sprite = document.getElementById("emptyhearttexture");
+            case 1:
+                heart2.sprite = document.getElementById("emptyhearttexture");
+            case 2:
+                heart1.sprite = document.getElementById("emptyhearttexture");
+        }
+
+        // Echo score to html tags
+        document.getElementById('score').innerHTML = player.score;
+
+        if(lives <= 0 && !level1.actors.includes(loseMessage)){
+            level1.addActor(loseMessage);
+            clearInterval(trashSpawnID);
+            clearInterval(trashDepositID);
+        }
 
 
         requestAnimationFrame(game);
