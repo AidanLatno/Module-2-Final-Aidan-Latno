@@ -208,27 +208,38 @@ window.addEventListener('load', function(){
         }
     }
 
-    // Declaration of main Scene
-    let level = new Scene(canvas.width,canvas.height);
-
     // Adds a fish or trash into the game with random texture
     function addObsticle(scene,actor){
         if(actor instanceof Fish){
             if(Math.floor(Math.random() * 2) === 1) actor.sprite = document.getElementById("fishtexture1");
             else actor.sprite = document.getElementById("fishtexture2");
 
-            level.addNewFish(actor);
+            scene.addNewFish(actor);
         }
         else if(actor instanceof Trash){
             if(Math.floor(Math.random() * 2) === 1) actor.sprite = document.getElementById("trashtexture1");
             else actor.sprite = document.getElementById("trashtexture2");
 
-            level.addNewTrash(actor);
+            scene.addNewTrash(actor);
         } 
+    }
+    // Periodic functions (Spawning/bin)
+    function spawn(scene,actor) {
+        actor.x = Math.floor(Math.random() * 370);
+        addObsticle(scene,actor);
+    }
+
+    function trashDeposit(p) {
+        // Player and bin collision
+        if(p.isColliding(bin) && p.inventory > 0){
+            p.score += 10;
+            p.inventory--;
+            p.updateSprite();
+        }
     }
 
     // Declaration and initialization of constant game objects
-    
+    let level = new Scene(canvas.width,canvas.height);
     let player = new Player(100,400,document.getElementById("playertexture1"));
     let bin = new Actor(400,600,null);
     let trash = new Trash(0,20,document.getElementById("trashtexture1"));
@@ -252,29 +263,12 @@ window.addEventListener('load', function(){
     level.addActor(heart2);
     level.addActor(heart3);
 
+    
 
-
-    // Spawn trash periodically
-    var trashSpawnID = setInterval(function() {
-        trash.x = Math.floor(Math.random() * 370);
-        addObsticle(level,trash);
-    }, 1500);
-
-    // Spawn fish periodically
-    var fishSpawnID = setInterval(function() {
-        fish.x = Math.floor(Math.random() * 370);
-        addObsticle(level,fish);
-    }, 1500);
-
-    // Empty Trash when near bin periodically
-    var trashDepositID = setInterval(function() {
-        // Player and bin collision
-        if(player.isColliding(bin) && player.inventory > 0){
-            player.score += 10;
-            player.inventory--;
-            player.updateSprite();
-        }
-    }, 200);
+    // Periodic functions 
+    const trashSpawnID = setInterval(spawn, 1500, level, trash);
+    const fishSpawnID = setInterval(spawn, 1500, level, fish);
+    const trashDepositID = setInterval(trashDeposit, 200, player);
 
     // main game loop
     function game(){
@@ -298,16 +292,10 @@ window.addEventListener('load', function(){
          // Detect Player collision with fish
          level.actors.forEach(actor =>{
             if(actor instanceof Fish &&
-               actor.isColliding(player) &&
-               player.inventory > 0) {
-                    while(player.inventory > 0){
-                        trash.y = player.y + 100;
-                        trash.x = Math.floor((Math.random() * 80 + player.x) - 40);
-                        addObsticle(level,trash);
-                        player.inventory--;
-                        trash.y = 20;
-                    }
-
+               actor.isColliding(player)) {
+                    player.inventory = 0;
+                    lives--;
+                    actor.markedForDeletion = true;
                     player.updateSprite();
             }
         });
@@ -325,6 +313,7 @@ window.addEventListener('load', function(){
         // Echo score to html tags
         document.getElementById('score').innerHTML = player.score;
 
+        // Lose condition
         if(lives <= 0 && !level.actors.includes(loseMessage)){
             level.addActor(loseMessage);
             clearInterval(trashSpawnID);
