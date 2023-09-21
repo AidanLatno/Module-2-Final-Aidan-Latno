@@ -47,3 +47,15 @@
 #score{
     top:12%;
 }
+
+.menuBox{
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: row;
+    background-image: url("textures/SideMenuBG.png");
+    background-size: cover;
+}
+
+.menu{
+    justify-content: center;
+}
