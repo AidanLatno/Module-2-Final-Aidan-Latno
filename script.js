@@ -4,7 +4,7 @@ window.addEventListener('load', function(){
     canvas.width = 146*3;
     canvas.height = 248*3;
     let lives = 3;
-
+    let backgroundPosition = 0;
 
     /*
         This class detects and logs input
@@ -266,8 +266,8 @@ window.addEventListener('load', function(){
     
 
     // Periodic functions 
-    const trashSpawnID = setInterval(spawn, 1500, level, trash);
-    const fishSpawnID = setInterval(spawn, 1500, level, fish);
+    const trashSpawnID = setInterval(spawn, 2500, level, trash);
+    const fishSpawnID = setInterval(spawn, 2500, level, fish);
     const trashDepositID = setInterval(trashDeposit, 200, player);
 
     // main game loop
@@ -312,6 +312,7 @@ window.addEventListener('load', function(){
 
         // Echo score to html tags
         document.getElementById('score').innerHTML = player.score;
+        document.getElementById('main').style.backgroundPosition = '0px ' + backgroundPosition;
 
         // Lose condition
         if(lives <= 0 && !level.actors.includes(loseMessage)){
